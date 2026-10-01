@@ -1,0 +1,18 @@
+{
+  "id": "shiny_hunter",
+  "name": "Shiny Hunter",
+  "version": "0.2.2",
+  "api": 2,
+  "entry": "main.lua",
+  "profile": "overhaul",
+  "category": "TOOL",
+  "games": [
+    "gen3"
+  ],
+  "game_version": ">=0.3.39 <0.4.0",
+  "permissions": [
+    "engine_internals"
+  ],
+  "description": "FireRed / LeafGreen / Emerald automatic encounter hunting and recorded attempt replay, with LegalMon-style menus, shiny protection and optional normal ball capture.",
+  "github": "CapnJames95/gen1recomp-shiny-hunter"
+}

@@ -1,0 +1,12 @@
+return {
+  summary = 'Automatic FRLG shiny hunting with LegalMon-style menus.',
+  author = 'Andrew Lamb / Codex',
+  tags = {'tool', 'shiny', 'automation', 'firered', 'leafgreen'},
+  differences = {
+    changed = {'Adds SHINY HUNTER above SAVE in the START menu.'},
+    added = {'Wild walking, interaction, fishing and recorded routes.', 'Shiny detection, protection, history and optional ball throwing.', 'Attempt recovery snapshot in mod storage; no normal save writes.'},
+    known = {'Uses engine internals. Encounter routes require in-game verification.', 'Existing eggs and already-generated roamers cannot be rerolled.', 'Capture can fail; no attacks, healing or guaranteed catches.'},
+  },
+  credits = {{who='BOIS CLUB GAMES, LLC',for_='Based on the Pokemon Gen 1 Recompilation Project (https://github.com/bryanthaboi/gen1recomp)'}},
+  compat = {engine='>=0.3.21 <2.0.0',modApi=2},
+}
