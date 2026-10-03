@@ -2,7 +2,7 @@ return function(M, env)
   local C = {config=M.defaults(), state='idle', attempts=0, resets=0, elapsed=0, history={}, route={}, routeTicks=0, message='Ready. Choose a mode and start.'}
   local tokens, observed, oldMons, baselineRoamer = {}, {}, {}, nil
   local frame, warmup, routeAt, routeLeft = 0,0,1,0
-  function C.running() return C.state=='running' or C.state=='recording' or C.state=='catching' end
+  function C.running() return C.state=='running' or C.state=='recording' or C.state=='catching' or C.state=='settling' end
   function C.release()
     for _,token in pairs(tokens) do env.release(token) end
     tokens={}
@@ -21,13 +21,14 @@ return function(M, env)
     C.message='Stopped. Current game state kept.'; env.speed(nil); if not skipPersist then env.persist(C) end
   end
   function C.resume()
-    if C.state~='paused' or not C.baseline then return false end
+    if C.state~='paused' or (not C.baseline and C.resumeState~='settling') then return false end
     if env.session() ~= C.session then C.stop(true); C.message='Session changed. Start a new hunt.'; return false end
     if C.pendingReset and C.config.maxAttempts>0 and C.attempts>=C.config.maxAttempts then C.message='Increase the attempt limit in Settings first.'; return false end
     C.state=C.resumeState or 'running'; C.message='Hunt resumed.'; env.hide(); env.speed(C.state=='recording' and 1 or C.config.speed); return true
   end
   function C.start(record)
     if C.state=='found' then return false, 'Keep the found Pokemon before starting another hunt.' end
+    if C.config.repeatCatch and (record or not ({walk=true,vertical=true,fishing=true})[C.config.mode]) then return false,'Repeat catching supports walking and fishing only.' end
     local ok,why=env.canStart(C.config)
     if not ok then return false,why end
     if C.config.mode=='route' and not record then return false,'Choose Record new route first.' end
@@ -35,7 +36,7 @@ return function(M, env)
     if not baseline then return false,err end
     local saved,msg=env.backup(baseline)
     if not saved then return false,msg end
-    C.baseline=baseline; C.session=env.session(); C.attempts=0; C.resets=0; C.elapsed=0
+    C.origin=M.copy(baseline); C.baseline=baseline; C.session=env.session(); C.attempts=0; C.resets=0; C.elapsed=0
     oldMons=M.collection(C.session); baselineRoamer=C.session.roamer and M.key(C.session.roamer)
     observed={}; C.route={}; C.routeTicks=0; C.emptyCycles=0; frame=0; warmup=record and 0 or 60; routeAt=1; routeLeft=0
     C.state=record and 'recording' or 'running'; C.recorded=record or false; C.pendingReset=nil
@@ -58,7 +59,7 @@ return function(M, env)
     frame=0; warmup=60; routeAt=1; routeLeft=0; C.message='Attempt '..(C.attempts+1)..'. START pauses.'
   end
   function C.inspect(mon,kind,identity)
-    if not C.running() or C.state=='catching' then return false end
+    if not C.running() or C.state=='catching' or C.state=='settling' then return false end
     if observed[identity] then return false end
     if (kind=='gift' or kind=='egg') and (tonumber(mon.otId)~=tonumber(C.session.trainerId or C.session.id)
       or tonumber(mon.otSecretId)~=tonumber(C.session.secretId)) then
@@ -91,7 +92,7 @@ return function(M, env)
         C.message=matches and 'SHINY FOUND! Attempt preserved.' or 'Other shiny protected. Attempt preserved.'
         if kind=='battle' and matches and C.config.autoCatch then
           local can,reason=env.canCatch(C.config)
-          if can then C.state='catching'; C.message='Shiny found. Throwing balls; START pauses.'
+          if can then C.repeatEligible=not env.battle().safari and not (C.session.roamer and M.pid(mon)==M.pid(C.session.roamer) and M.species(mon)==M.species(C.session.roamer)); C.state='catching'; C.message='Shiny found. Throwing balls; START pauses.'
           else C.message=C.message..' '..tostring(reason); env.show() end
         else env.show() end
         return true
@@ -152,8 +153,37 @@ return function(M, env)
     if env.session()~=C.session then C.pause('Game session changed. Start a new hunt.'); return end
     C.elapsed=C.elapsed+(dt or 1/60)
     if C.state=='catching' then
-      local done,why=env.catchStep(C.config)
-      if done then C.found.outcome=why; C.state='found'; C.message=why; C.release(); env.speed(nil); env.persist(C); env.show() end
+      local done,why,caught=env.catchStep(C.config)
+      if done then
+        C.found.outcome=why; C.state='found'; C.message=why; C.release(); env.speed(nil); env.persist(C)
+        if caught and C.config.repeatCatch and C.repeatEligible and not C.recorded and ({walk=true,vertical=true,fishing=true})[C.config.mode] then
+          -- Never allow the pre-catch snapshot to reset away a successful catch.
+          C.baseline=nil; C.pendingReset=nil; C.state='settling'; C.settleTicks=0
+        else env.show() end
+      end
+      return
+    end
+    if C.state=='settling' then
+      C.settleTicks=C.settleTicks+1
+      local ready,why=env.repeatReady(C.config)
+      if ready==nil and C.settleTicks<600 then return end
+      local function finish(reason)
+        C.stop(); C.message='Catch kept. '..tostring(reason)..' Save normally.'; env.show()
+      end
+      if not ready then finish(why or 'Field did not become ready.'); return end
+      local baseline,err=env.capture()
+      if not baseline then finish(err); return end
+      if baseline.save.map~=C.origin.save.map then finish('Map changed; repeat stopped.'); return end
+      -- Refresh the ENTIRE save first, retaining catches, bag, HP and progress.
+      -- Only the same-map starting position and avatar are restored.
+      for _,key in ipairs({'x','y','facing'})do baseline.save[key]=C.origin.save[key] end
+      baseline.avatar=M.copy(C.origin.avatar)
+      local saved,msg=env.backup(baseline)
+      if not saved then finish('Could not refresh recovery: '..tostring(msg)); return end
+      C.baseline=baseline; oldMons=M.collection(C.session)
+      baselineRoamer=C.session.roamer and M.key(C.session.roamer)
+      observed={}; C.found=nil; C.emptyCycles=0; C.state='running'
+      env.speed(C.config.speed); C.queueReset()
       return
     end
     if C.pendingReset then return end

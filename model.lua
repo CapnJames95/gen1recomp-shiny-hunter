@@ -19,7 +19,7 @@ end
 function M.defaults()
   return {mode='walk', species=0, nature=-1, gender='Any', ability=0,
     ivs={hp=0,atk=0,def=0,spe=0,spa=0,spd=0}, protectAny=true,
-    autoCatch=false, ball=2, speed=64, timeout=120, stride=24, maxAttempts=0}
+    autoCatch=false, repeatCatch=false, ball=2, speed=64, timeout=120, stride=24, maxAttempts=0}
 end
 function M.pid(mon) return tonumber(mon.personality or mon.pid) end
 function M.species(mon) return tonumber(mon.species or mon.speciesId) end

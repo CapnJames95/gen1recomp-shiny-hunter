@@ -1,8 +1,9 @@
 return function(mod)
   assert(load(assert(mod:read("native_legality.lua")), "@shiny-hunter/native_legality.lua"))().install(mod)
   local function module(name) return assert(load(assert(mod:read(name..'.lua')),'@shiny_hunter/'..name..'.lua'))() end
+  local Odds=module('odds');Odds.install(mod)
   local M=module('model')
-  local E=module('adapter')(M,mod)
+  local E=module('adapter')(M,mod);E.wildOdds=Odds
   local C=module('controller')(M,E)
   local V=module('view')(M)
   local S=module('screen')(M,C,E,V)

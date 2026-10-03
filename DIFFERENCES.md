@@ -1,15 +1,8 @@
 # Differences from vanilla
 
-Automate encounters and stop for shinies or chosen targets.
+- Automates encounter attempts with filters, shiny protection and optional normal ball capture.
+- Optional extra complete PID/IV rolls boost supported wild shiny odds without changing the shiny threshold or trainer IDs. Vanilla odds remain the default.
+- Optional continuous walking/fishing catches retain caught Pokémon and consumed balls, refresh the recovery point and return to the original spot.
+- Static/gift/egg/event/roamer/Unown/Safari/Frontier encounters are excluded from odds boosting. Continuous catching supports ordinary walking/fishing only.
 
-# Shiny Hunter
-
-Automate encounters and stop for shinies or chosen targets.
-
-For **Emerald, FireRed and LeafGreen**. Recommend **gen1recomp 0.3.42+**, especially for Sweet Scent.
-
-- Configure automatic encounter hunting with shiny protection.
-- Stop for selected targets and optionally attempt normal ball capture.
-- Works in Emerald, FireRed and LeafGreen; avoid competing automation.
-
-The repository migration changes only package metadata and documentation; runtime Lua matches collection v1.3.
+See [the README](README.md) for controls, validation and limitations.

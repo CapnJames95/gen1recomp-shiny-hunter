@@ -136,6 +136,16 @@ return function(M,mod)
     if not st.safari and st.player and (st.player.hp or (st.player.mon or {}).hp or 0)<=0 then return false,'Lead Pokemon fainted. Take over manually.' end
     return true
   end
+  function E.repeatReady(c)
+    local s=E.session()
+    if Battle.isActive() or E.game.phase~='field' or Field.locked or Player.moving
+      or (Space.vm and Space.vm:isRunning()) or (Space._immediateVm and Space._immediateVm:isRunning()) then return nil end
+    local ok,why=E.canStart(c)
+    if not ok then return false,why end
+    if not Bag.has(s.bag,c.ball,1) then return false,'Selected balls are depleted.' end
+    if not s.party or not s.party[1] or (s.party[1].hp or 0)<=0 then return false,'Lead Pokemon fainted.' end
+    return true
+  end
   function E.catchStep(c)
     local st=E.battle()
     if st~=catchState then catchTicks=0; catchState=st end
@@ -143,7 +153,7 @@ return function(M,mod)
     if not st then
       local result=Battle.getResult()
       catchTicks=0
-      return true,result=='catch' and 'Shiny caught! Save normally to keep it.' or ('Battle ended: '..tostring(result)..'. No retry was started.')
+      return true,result=='catch' and 'Shiny caught! Save normally to keep it.' or ('Battle ended: '..tostring(result)..'. No retry was started.'),result=='catch'
     end
     if not st.safari and st.player and (st.player.hp or (st.player.mon or {}).hp or 0)<=0 then
       return true,'Lead Pokemon fainted. Take over manually.'
