@@ -1,3 +1,9 @@
+-- RS native small-font atlases do not render reliably in these compact mod menus.
+-- Keep measurement and drawing on the same readable native face.
+local function collectionFont()
+ local v=require('src.core.GameVersion').get()
+ return (v=='ruby' or v=='sapphire') and 'normal' or nil
+end
 return function(M)
   local V={}
   local Window=require('src.ui.game3.window')
@@ -5,11 +11,11 @@ return function(M)
   local Pokemon=require('src.core.game3.pokemon')
   local function text(value,x,y,width,small,colors)
     value=tostring(value or '')
-    if Font.measure(value,{small=small})>width then
-      while #value>0 and Font.measure(value..'...',{small=small})>width do value=value:sub(1,-2) end
+    if Font.measure(value,{small=collectionFont()==nil and small})>width then
+      while #value>0 and Font.measure(value..'...',{small=collectionFont()==nil and small})>width do value=value:sub(1,-2) end
       value=value..'...'
     end
-    Window.printPx(value,x,y,{maxWidth=width,small=small,colors=colors})
+    Window.printPx(value,x,y,{maxWidth=width,small=collectionFont()==nil and small,colors=colors})
   end
   local function frame(x,y,w,h,s) Window.userFrame(Window.template(x,y,w,h),s.frameType or 0) end
   function V.draw(s)

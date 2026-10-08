@@ -2,6 +2,12 @@ return function(mod)
   assert(load(assert(mod:read("native_legality.lua")), "@shiny-hunter/native_legality.lua"))().install(mod)
   local function module(name) return assert(load(assert(mod:read(name..'.lua')),'@shiny_hunter/'..name..'.lua'))() end
   local Odds=module('odds');Odds.install(mod)
+  module('acquisition_odds').install(mod,Odds)
+  mod.exports.prepareDualScreenEncounter=function(enc,forceShiny)
+    if not mod.find or not mod.find('frlg_dual_screen') or not mod.find(mod.id)
+      or mod.options and mod.options:get('enabled')==false then return enc end
+    return Odds.prepareDualScreen(enc,require('src.core.game3.runtime').getSession(),forceShiny==true)
+  end
   local M=module('model')
   local E=module('adapter')(M,mod);E.wildOdds=Odds
   local C=module('controller')(M,E)
@@ -32,7 +38,7 @@ return function(mod)
   mod.exports.show=function(game)
     local session=E.session()
     if not game or game.generation~=3 or game.phase~='field' or not session
-      or (session.version~='firered' and session.version~='leafgreen' and session.version~='emerald') then return false end
+      or (session.version~='firered' and session.version~='leafgreen' and session.version~='emerald' and session.version~='ruby' and session.version~='sapphire') then return false end
     bind(game)
     if C.running() then C.pause() end
     S.show();return true
@@ -57,7 +63,7 @@ return function(mod)
   mod.hooks:wrap('ui.start_menu.items',function(next,game,items)
     local result=next(game,items)
     local session=E.session()
-    if type(result)~='table' or not session or (session.version~='firered' and session.version~='leafgreen' and session.version~='emerald') then return result end
+    if type(result)~='table' or not session or (session.version~='firered' and session.version~='leafgreen' and session.version~='emerald' and session.version~='ruby' and session.version~='sapphire') then return result end
     for _,r in ipairs(result) do if r.id=='shiny_hunter' then return result end end
     local at=#result+1; for i,r in ipairs(result) do if r.id=='save' then at=i; break end end
     table.insert(result,at,{id='shiny_hunter',label='SHINY HUNTER',onSelect=function()

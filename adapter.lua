@@ -9,8 +9,28 @@ return function(M,mod)
   local Player=require('src.core.game3.player')
   local Bag=require('src.core.game3.bag')
   local Field=require('src.core.game3.field')
+  local Text=require('src.core.game3.rom_text')
+  local Mods=require('src.mods.Runtime')
+  local record=Text._shinyHunterFishing
+  if not record then
+    record={previous=Text.box}
+    Text._shinyHunterFishing=record
+    Text.box=function(key,...)
+      local version=require('src.core.GameVersion').get()
+      local aliases={gText_NotEvenANibble='gOtherText_NotEvenANibble',
+        gText_PokemonOnHook='gOtherText_PokeOnHook'}
+      local target=aliases[key]
+      if record.owner==Mods.events and record.enabled() and Field._fishing
+        and (version=='ruby' or version=='sapphire') and target
+        and not Text.has(key) and Text.has(target) then key=target end
+      return record.previous(key,...)
+    end
+  end
+  record.owner=Mods.events
+  record.enabled=function() return not mod.find or mod.find(mod.id)~=nil end
   local catchTicks,catchState
   E.pokemon=Pokemon
+  E.dualScreenDetected=function() return mod.find and mod.find('frlg_dual_screen')~=nil or false end
   E.session=Runtime.getSession
   E.isEgg=Pokemon.isEgg
   function E.prepareWild(mon)
@@ -35,7 +55,7 @@ return function(M,mod)
   end
   function E.canStart(c)
     local s=E.session()
-    if not s or (s.version~='firered' and s.version~='leafgreen' and s.version~='emerald') then return false,'FireRed, LeafGreen or Emerald field session required.' end
+    if not s or (s.version~='firered' and s.version~='leafgreen' and s.version~='emerald' and s.version~='ruby' and s.version~='sapphire') then return false,'A supported Gen 3 field session is required.' end
     if not E.game or E.game.generation~=3 or type(E.game.returnToTitle)~='function' or type(E.game._enterField)~='function' then
       return false,'This engine build lacks the required reset API.'
     end
@@ -45,6 +65,7 @@ return function(M,mod)
     end
     if E.game.speedLocked and E.game:speedLocked() then return false,'Finish the linked activity or minigame first.' end
     if s.version=='emerald' and s.frontier and (s.frontier.challengeStatus or 0)~=0 then return false,'Finish the Battle Frontier challenge first.' end
+    if (s.version=='ruby' or s.version=='sapphire') and type(s.map)=='string' and s.map:find('BATTLE_TOWER') then return false,'Finish the Battle Tower challenge first.' end
     if s.secretId==nil or (s.trainerId or s.id)==nil then return false,'Trainer IDs are unavailable.' end
     if not capacity(s) then return false,'Party and PC are full.' end
     if c.mode=='fishing' then

@@ -142,11 +142,11 @@ return function(M,C,E,V)
       {label=function() return C.state=='paused' and 'Resume hunt' or 'Start hunt' end,help=C.message,action=startPage},
       {label='Encounter modes',help='Choose automatic movement, interaction or a recorded route.',action=function() if C.baseline then S.notice='Stop the current hunt before changing mode.' else modes() end end},
       {label='Found shinies',help='Read found Pokemon, attempts and capture outcomes.',action=history},
-      {label=function()local n=E.wildOdds and E.wildOdds.get(E.session()) or 8192;return n==8192 and 'Shiny odds: Vanilla' or n==1 and 'Shiny odds: 1/1' or 'Shiny odds: ~1/'..n end,help='Natural wild encounters only; save normally.',action=function()
+      {label=function()local n=E.wildOdds and E.wildOdds.get(E.session()) or 8192;return n==8192 and 'Shiny odds: Vanilla' or n==1 and 'Shiny odds: 1/1' or 'Shiny odds: ~1/'..n end,help='New encounters, gifts and eggs; save normally.',action=function()
         if C.baseline then S.notice='Stop the current hunt before changing odds.';return end
         local values={}
-        for _,n in ipairs(E.wildOdds.values)do values[#values+1]={value=n,label=n==8192 and 'Vanilla: 1/8192' or n==1 and 'Guaranteed: 1/1' or 'Approx. 1/'..n,help=n<=32 and 'Extra rolls may pause before battle. Special encounters unchanged.' or 'Extra complete rolls. Special encounters are unchanged.'}end
-        choose('WILD SHINY ODDS',values,function(v)E.wildOdds.set(E.session(),v)end)
+        for _,n in ipairs(E.wildOdds.values)do values[#values+1]={value=n,label=n==8192 and 'Vanilla: 1/8192' or n==1 and 'Guaranteed: 1/1' or 'Approx. 1/'..n,help=n<=32 and 'Extra rolls may pause before battle. Existing Pokemon unchanged.' or 'Extra complete rolls. Only newly generated Pokemon.'}end
+        choose('SHINY ODDS',values,function(v)E.wildOdds.set(E.session(),v)end)
       end},
       {label='Settings',help='Protection, capture balls, speed and limits.',action=settings},
       {label=C.baseline and 'Hunt controls' or 'Close',help=C.message,action=function()
@@ -159,6 +159,16 @@ return function(M,C,E,V)
         else S.hide() end
       end},
     },true)
+    if E.dualScreenDetected and E.dualScreenDetected() then
+      table.insert(S.pages[#S.pages].rows,6,{
+        label=function()return 'Dual Screen odds: '..(E.wildOdds.getDualScreen(E.session()) and 'ON' or 'OFF')end,
+        help='Use selected odds for the Wild Pokemon button. Save normally.',
+        action=function()
+          if C.baseline then S.notice='Stop the current hunt before changing odds.';return end
+          E.wildOdds.setDualScreen(E.session(),not E.wildOdds.getDualScreen(E.session()));E.persist(C)
+        end,
+      })
+    end
   end
   function S.show()
     S.active=true; S.home()
