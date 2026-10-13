@@ -30,8 +30,8 @@ function O.prepareDualScreen(enc,s,forceShiny)
  if type(enc)~='table' or enc.personality or enc.ivs or enc.foe or enc.roamer or enc.moves or enc.eventDistribution then return enc end
  if not s or not ({firered=true,leafgreen=true,emerald=true,ruby=true,sapphire=true})[s.version]
   or type(s.trainerId)~='number' or type(s.secretId)~='number' or enc.species==201 then return enc end
- if s.frontier and (s.frontier.challengeStatus or 0)~=0 or s.safari and (s.safari.active or (tonumber(s.safari.steps) or 0)>0)then return enc end
- if type(s.map)=='string' and (s.map:find('BATTLE_') or s.map:find('SAFARI'))then return enc end
+ if s.frontier and (s.frontier.challengeStatus or 0)~=0 then return enc end
+ if type(s.map)=='string' and s.map:find('BATTLE_')then return enc end
  local E=require('src.core.game3.encounters');local R=require('src.core.game3.rng')
  local hoenn=s and (s.version=='emerald' or s.version=='ruby' or s.version=='sapphire')
  local rules=hoenn and E.rules() or nil
@@ -62,11 +62,11 @@ function O.apply(enc,s,R,createWild,nativeRs,override)
  if odds==8192 or type(enc)~='table' or not s or not ({firered=true,leafgreen=true,emerald=true,ruby=true,sapphire=true})[s.version]then return enc end
  if type(s.trainerId)~='number' or type(s.secretId)~='number' then return enc end
  if enc.foe or enc.roamer or enc.moves or (enc.ivs and not nativeRs) or enc.eventDistribution or enc.wildScripted then return enc end
- if s.frontier and (s.frontier.challengeStatus or 0)~=0 or s.safari and (s.safari.active or (tonumber(s.safari.steps) or 0)>0) then return enc end
+ if s.frontier and (s.frontier.challengeStatus or 0)~=0 then return enc end
  local species=tonumber(enc.species);local level=tonumber(enc.level)
  -- Unown forms and scripted/facility encounters require separate validation.
  if not species or species==201 or not level or level<1 or level>100 then return enc end
- if type(s.map)=='string' and (s.map:find('BATTLE_') or s.map:find('SAFARI'))then return enc end
+ if type(s.map)=='string' and s.map:find('BATTLE_')then return enc end
  local hoenn=s.version=='emerald' or s.version=='ruby' or s.version=='sapphire'
  if hoenn and type(createWild)~='function' then return enc end
  local pid=enc.personality or R.Random32()

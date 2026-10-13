@@ -92,7 +92,7 @@ return function(M, env)
         C.message=matches and 'SHINY FOUND! Attempt preserved.' or 'Other shiny protected. Attempt preserved.'
         if kind=='battle' and matches and C.config.autoCatch then
           local can,reason=env.canCatch(C.config)
-          if can then C.repeatEligible=not env.battle().safari and not (C.session.roamer and M.pid(mon)==M.pid(C.session.roamer) and M.species(mon)==M.species(C.session.roamer)); C.state='catching'; C.message='Shiny found. Throwing balls; START pauses.'
+          if can then C.repeatSafari=env.battle().safari==true; C.repeatEligible=not (C.session.roamer and M.pid(mon)==M.pid(C.session.roamer) and M.species(mon)==M.species(C.session.roamer)); C.state='catching'; C.message='Shiny found. Throwing balls; START pauses.'
           else C.message=C.message..' '..tostring(reason); env.show() end
         else env.show() end
         return true
@@ -165,7 +165,7 @@ return function(M, env)
     end
     if C.state=='settling' then
       C.settleTicks=C.settleTicks+1
-      local ready,why=env.repeatReady(C.config)
+      local ready,why=env.repeatReady(C.config,C.repeatSafari)
       if ready==nil and C.settleTicks<600 then return end
       local function finish(reason)
         C.stop(); C.message='Catch kept. '..tostring(reason)..' Save normally.'; env.show()

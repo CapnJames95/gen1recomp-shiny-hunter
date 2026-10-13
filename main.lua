@@ -17,6 +17,14 @@ return function(mod)
   local Help=require('src.ui.game3.help_system')
   local Stack=require('src.ui.game3.stack')
   local FixedStep=require('src.core.FixedStep')
+  mod.exports.stopForSafari=function() C.stop();C.message='Safari retired. Hunt stopped.' end
+  mod.exports.safariRefilled=function(session)
+    if session~=C.session or not session.safari then return end
+    for _,snapshot in ipairs({C.baseline,C.origin}) do
+      if snapshot and snapshot.safari then snapshot.safari.balls=session.safari.balls;snapshot.safari.steps=session.safari.steps end
+    end
+  end
+  mod.exports.suspendForSafari=function() if C.running() then C.pause('Safari resources exhausted. Choose Refill or Retire.') end end
   mod.exports.dualScreenProtocol=1
   mod.exports.dualScreenBusy=function() return C.running() or C.pendingReset~=nil or C.baseline~=nil end
   local loadedSession,helpLease

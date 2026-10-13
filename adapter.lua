@@ -66,6 +66,10 @@ return function(M,mod)
     if E.game.speedLocked and E.game:speedLocked() then return false,'Finish the linked activity or minigame first.' end
     if s.version=='emerald' and s.frontier and (s.frontier.challengeStatus or 0)~=0 then return false,'Finish the Battle Frontier challenge first.' end
     if (s.version=='ruby' or s.version=='sapphire') and type(s.map)=='string' and s.map:find('BATTLE_TOWER') then return false,'Finish the Battle Tower challenge first.' end
+    if require('src.core.game3.safari').isActive(s) then
+      if (tonumber((s.safari or {}).balls) or 0)<=0 then return false,'No Safari Balls remain.' end
+      if (tonumber((s.safari or {}).steps) or 0)<=0 then return false,'The Safari game has ended.' end
+    end
     if s.secretId==nil or (s.trainerId or s.id)==nil then return false,'Trainer IDs are unavailable.' end
     if not capacity(s) then return false,'Party and PC are full.' end
     if c.mode=='fishing' then
@@ -157,13 +161,15 @@ return function(M,mod)
     if not st.safari and st.player and (st.player.hp or (st.player.mon or {}).hp or 0)<=0 then return false,'Lead Pokemon fainted. Take over manually.' end
     return true
   end
-  function E.repeatReady(c)
+  function E.repeatReady(c,wasSafari)
     local s=E.session()
     if Battle.isActive() or E.game.phase~='field' or Field.locked or Player.moving
       or (Space.vm and Space.vm:isRunning()) or (Space._immediateVm and Space._immediateVm:isRunning()) then return nil end
     local ok,why=E.canStart(c)
     if not ok then return false,why end
-    if not Bag.has(s.bag,c.ball,1) then return false,'Selected balls are depleted.' end
+    local safari=require('src.core.game3.safari').isActive(s)
+    if wasSafari and not safari then return false,'Safari game ended.' end
+    if not safari and not Bag.has(s.bag,c.ball,1) then return false,'Selected balls are depleted.' end
     if not s.party or not s.party[1] or (s.party[1].hp or 0)<=0 then return false,'Lead Pokemon fainted.' end
     return true
   end

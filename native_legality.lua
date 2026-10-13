@@ -92,33 +92,37 @@ function Fix.install(mod)
     return result
   end)
   local Roamer = require('src.core.game3.roamer')
-  wrap(Roamer, 'generateMon', 'generateRoamer', function(_, species, level)
-    local Rng = require('src.core.game3.rng')
-    local pid = Rng.Random32()
-    local iv1 = Rng.Random(); Rng.Random() -- retail generation consumes both IV words
-    -- Retail FRLG stores just eight IV bits for roamers (HP 0..31, Attack 0..7).
-    local mon = {species=species,speciesId=species,level=level or Roamer.ROAMER_LEVEL,
-      personality=pid,pid=pid,ivs={hp=iv1%32,atk=math.floor(iv1/32)%8,def=0,spe=0,spa=0,spd=0},
-      evs={hp=0,atk=0,def=0,spe=0,spa=0,spd=0},status=0,statusNum=0}
-    mon.moves, mon.pp, mon.maxPp = Pokemon.movesAtLevel(species, mon.level)
-    mon.abilityNum = abilitySlot(mon)
-    Pokemon.applyStats(mon); mon.hp = mon.maxHp
-    return mon
-  end)
-  wrap(Roamer, 'tryEncounter', 'roamerEncounter', function(previous, ...)
-    local encounter = previous(...)
-    -- Host stores pid but its battle factory consumes personality.
-    if encounter and encounter.foe and encounter.foe.personality == nil then
-      encounter.foe.personality = encounter.foe.pid
-    end
-    if encounter and encounter.foe then
-      -- The host bridge passes the outer descriptor directly to Battle.start.
-      for _, key in ipairs({'personality','ivs','hp','maxHp','status','statusNum','moves','pp'}) do
-        if encounter[key] == nil then encounter[key] = encounter.foe[key] end
+  -- New engines own roamer PID/IV construction and the battle descriptor.
+  -- Only legacy engines expose generateMon and need these two corrections.
+  if type(Roamer.generateMon) == 'function' then
+    wrap(Roamer, 'generateMon', 'generateRoamer', function(_, species, level)
+      local Rng = require('src.core.game3.rng')
+      local pid = Rng.Random32()
+      local iv1 = Rng.Random(); Rng.Random() -- retail generation consumes both IV words
+      -- Retail FRLG stores just eight IV bits for roamers (HP 0..31, Attack 0..7).
+      local mon = {species=species,speciesId=species,level=level or Roamer.ROAMER_LEVEL,
+        personality=pid,pid=pid,ivs={hp=iv1%32,atk=math.floor(iv1/32)%8,def=0,spe=0,spa=0,spd=0},
+        evs={hp=0,atk=0,def=0,spe=0,spa=0,spd=0},status=0,statusNum=0}
+      mon.moves, mon.pp, mon.maxPp = Pokemon.movesAtLevel(species, mon.level)
+      mon.abilityNum = abilitySlot(mon)
+      Pokemon.applyStats(mon); mon.hp = mon.maxHp
+      return mon
+    end)
+    wrap(Roamer, 'tryEncounter', 'roamerEncounter', function(previous, ...)
+      local encounter = previous(...)
+      -- Host stores pid but its battle factory consumes personality.
+      if encounter and encounter.foe and encounter.foe.personality == nil then
+        encounter.foe.personality = encounter.foe.pid
       end
-    end
-    return encounter
-  end)
+      if encounter and encounter.foe then
+        -- The host bridge passes the outer descriptor directly to Battle.start.
+        for _, key in ipairs({'personality','ivs','hp','maxHp','status','statusNum','moves','pp'}) do
+          if encounter[key] == nil then encounter[key] = encounter.foe[key] end
+        end
+      end
+      return encounter
+    end)
+  end
   local Trade = require('src.core.game3.scripting.natives_trade')
   wrap(Trade, 'createTradeMon', 'createTradeMon', function(previous, index, ...)
     local mon = previous(index, ...)
